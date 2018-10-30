@@ -56,3 +56,33 @@ body {
 	font-weight: lighter;
 	padding: 0 20px;
 }
+
+.header {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+}
+
+.header h1{
+	color: #fff;
+	font-size: 40px;
+	font-weight: 400;
+	margin-bottom: 8px;
+}
+
+.header p{
+	color: #fff;
+	font-size: 25px;
+	font-weight: lighter;
+}
+
+.header button {
+	color: #fff;
+	background: #009f8b;
+	padding: 18px 38px;
+	border: none;
+	font-size: 14px;
+	margin-top: 40px;
+}

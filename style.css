@@ -91,6 +91,8 @@ body {
 	list-style-position: 
 	top: 20%;
 	left: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
 }
 
 .header2 h1{

@@ -86,3 +86,16 @@ body {
 	font-size: 14px;
 	margin-top: 40px;
 }
+
+.header2 {
+	list-style-position: 
+	top: 20%;
+	left: 50%;
+}
+
+.header2 h1{
+	color: #fff;
+	font-size: 40px;
+	font-weight: 400;
+	margin-bottom: 8px;
+}

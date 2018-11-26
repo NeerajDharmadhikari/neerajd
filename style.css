@@ -21,9 +21,6 @@ body {
 	background: url('ProfolioBackdrop.jpg');
 	background-position: center;
 	background-repeat: repeat-y;
-	background-size: cover;
-	display: table;
-	font-family: Montserrat;
 }
 
 .nav {

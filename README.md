@@ -1,2 +1,2 @@
 # neerajd
-Photography Website
+My Personal Website (Made from HTML, CSS, JavaScript with Bootstrap)

@@ -147,7 +147,7 @@
             </div>
 
             <div class="col-sm-5">
-              <form action="forms/contact.php" method="post" role="form" class="php-email-form">
+              <form id ="contact-form" name="contact-form" action="https://formspree.io/xqkyglay" method="POST" role="form" class="php-email-form">
                 <div class="row">
 
                   <div class="col-sm-6">
@@ -180,12 +180,11 @@
 
                   <div class="col-sm-12 mb-3">
                     <div class="loading">Loading</div>
-                    <div class="error-message"></div>
                     <div class="sent-message">Your message has been sent. Thank you!</div>
                   </div>
 
                   <div class="col-sm-12">
-                    <input type="submit" class="btn btn-defeault btn-send" value="Send message">
+                    <input type="submit" onclick="document.getElementById('contact-form').submit();" class="btn btn-defeault btn-send" value="Send message">
                   </div>
 
                 </div>

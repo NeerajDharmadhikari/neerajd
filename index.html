@@ -38,6 +38,7 @@
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#interests">Interests</a></li>
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#portfolio">portfolio</a></li>
                     <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#achievements">Achievements</a></li>
+                    <li class="nav-item"><a class="nav-link js-scroll-trigger" href="#contact">Contact</a></li>
                 </ul>
             </div>
         </nav>
@@ -327,6 +328,67 @@
                             </ul>
                         </div>
                     </section>
+                    <hr class="m-0" />
+
+                    <!-- ======= Contact Section ======= -->
+                    <section class="resume-section" id="contact">
+                        <div class="container">
+                        <div class="socials-media text-center">
+                
+                            <h2 class="mb-10">Contact me</h2>
+                            <p style="font-size: smaller;">&nbsp</p>
+                            
+                
+                            <div class="row">
+                
+                            <div class="col-lg-20">
+                                <form id ="contact-form" name="contact-form" action="https://formspree.io/xqkyglay" method="POST" role="form" class="php-email-form">
+                                <div class="row">
+                
+                                    <div class="col-sm-6">
+                                    <div class="form-group contact-block1" style="color: aqua;">
+                                        <input type="text" name="name" class="form-control" id="name" placeholder="Your Name" data-rule="minlen:4" data-msg="Please enter at least 4 chars" />
+                                        <div class="validate"></div>
+                                    </div>
+                                    </div>
+                
+                                    <div class="col-sm-6">
+                                    <div class="form-group">
+                                        <input type="email" class="form-control" name="email" id="email" placeholder="Your Email" data-rule="email" data-msg="Please enter a valid email" />
+                                        <div class="validate"></div>
+                                    </div>
+                                    </div>
+                
+                                    <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <input type="text" class="form-control" name="subject" id="subject" placeholder="Subject" data-rule="minlen:4" data-msg="Please enter at least 8 chars of subject" />
+                                        <div class="validate"></div>
+                                    </div>
+                                    </div>
+                
+                                    <div class="col-sm-12">
+                                    <div class="form-group">
+                                        <textarea class="form-control" name="message" rows="12" data-rule="required" data-msg="Please write something for us" placeholder="Message"></textarea>
+                                        <div class="validate"></div>
+                                    </div>
+                                    </div>
+                
+                                    <div class="error-message"></div>
+                
+                                    <div class="col-sm-12">
+                                    <input type="submit" onclick="document.getElementById('contact-form').submit();" class="btn btn-defeault btn-send" value="Send Message">
+                                    </div>
+
+                                    <p>&nbsp</p>
+                                    <p>&nbsp</p>
+                
+                                </div>
+                                </form>
+                            </div>
+                            </div>
+                        </div>
+                        </div>
+                    </section><!-- End Contact Section -->
             
         </div>
         <!-- Bootstrap core JS-->

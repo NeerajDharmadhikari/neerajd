@@ -42,15 +42,13 @@ a {
   color: #18d26e;
 }
 
-a:hover {
-  color: #35e888;
-  text-decoration: none;
-}
-
 h1, h2, h3, h4, h5, h6 {
   font-family: "Raleway", sans-serif;
 }
 
+h1:hover{
+  color:#35e888;
+}
 /*--------------------------------------------------------------
 # Header
 --------------------------------------------------------------*/
@@ -98,6 +96,16 @@ h1, h2, h3, h4, h5, h6 {
 #header img {
   padding: 0;
   margin: 0;
+}
+
+img:hover{
+  color: #4ceb95;
+}
+
+#header img:hover{
+  color: #4ceb95;
+  background: #4ceb95;
+  box-shadow: 0 0 10px #35e888, 0 0 40px #35e888, 0 0 80px #35e888;
 }
 
 #header .social-links {

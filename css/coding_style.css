@@ -683,7 +683,7 @@ body {
   # Facts
   --------------------------------------------------------------*/
   .facts .counters span {
-    font-size: 48px;
+    font-size: 32px;
     display: block;
     color: #34b7a7;
   }

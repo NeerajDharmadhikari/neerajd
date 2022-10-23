@@ -53,9 +53,10 @@
                     <h1 class="mb-2" style="font-size: 6.5vmin;">Neeraj <span class="text-primary">Dharmadhikari</span></h1>
                     <div class="subheading mb-5" style="font-size: 120%;">SAN FRANCISCO BAY AREA · <a href="mailto:neerajd24@gmail.com">neerajd24@gmail.com</a> · Pronouns: He, Him, His</div>
                     <p class="lead mb-5">
-                        Welcome to my doorway to the world. I'm currently in the second (and final) year of my Master's Program in Computer Science at UC Irvine and I'm obsessed with coding. 
-                        Whether you are a friend or a recruiter, you will find all the information about my experiences, skills, and projects if you scroll below.
-                        Currently I'm also a technical coach for Outco Inc. where I help my clients get better at their technical interview skills. <br> <a href="./assets/Neeraj Resume.pdf" download>Click here to download my resume</a>.
+                        Welcome to my doorway to the world. I'm currently a Software Developer (Full-stack) at Zoom Video Communications Inc. for the last
+                        <b id="daysFromStart"></b> days.
+                        Whether you're a friend or a recruiter, you will find all the information about my education, experience, skills, and projects if you scroll below.
+                        <br> <a href="./assets/Neeraj Resume.pdf" download>Click here to download my resume</a>.
                     </p>
                     
                     <div class="social-icons">
@@ -71,8 +72,36 @@
                     <div class="d-flex flex-column flex-md-row justify-content-between mb-5">
                         <div class="flex-grow-1">
                             <ul class="list-inline dev-icons">
-                                <h3 class="mb-0">Technical Coach (Current Part-time)</h3>
-                                <li class="list-inline-item" ><div class="subheading mb-3">Outco Inc.</div></li>
+                                <h3 class="mb-0">Software Developer (Full-stack)</h3>
+                                <li class="list-inline-item">
+                                    <a href="https://zoom.us/" target="_blank"> 
+                                        <img class="img-fluid" src="assets/img/Zoom_Logo.png"  style="width:35%">
+                                    </a>
+                                </li>
+                                <li class="list-inline-item"><i class="fab fa-js-square" title="JavaScript"></i></li>
+                                <li class="list-inline-item" title="Java"><i class="fab fa-java"></i></li>
+                                <li class="list-inline-item" title="Vue.js"><i class="fab fa-vuejs"></i></li>
+                            </ul>
+                            <p> 
+                                - Building an intuitive flow for meeting administrators to report and remove participants responsible for Zoom-bombing, 
+                                sending malicious messages, and other offensive content as part of the <b>Trust and Safety Engineering Team</b>
+                            </p>
+                            <p>
+                                - Expanding the functionality of Zoom's Trust Form to allow escalating reports containing child abuse 
+                                and exploitation to the National Council of Missing and Exploited Children (NCMEC) using their API.
+                            </p>
+                        </div>
+                        <div class="flex-shrink-0"><span class="text-primary">Spring 2022 - Current</span></div>
+                    </div>
+                    <div class="d-flex flex-column flex-md-row justify-content-between mb-5">
+                        <div class="flex-grow-1">
+                            <ul class="list-inline dev-icons">
+                                <h3 class="mb-0">Technical Coach (Part-time)</h3>
+                                <li class="list-inline-item">
+                                    <a href="https://www.outco.io/" target="_blank"> 
+                                        <img class="img-fluid" src="assets/img/Outco_Logo.png"  style="width:55%">
+                                    </a>
+                                </li>
                                 <li class="list-inline-item" title="Java"><i class="fab fa-java"></i></li>
                                 <li class="list-inline-item" title="Python"><i class="fab fa-python"></i></li>
                                 <i class="devicon-cplusplus-plain" title="C++"></i>
@@ -91,7 +120,7 @@
                                 search challenges
                                 </p>
                         </div>
-                        <div class="flex-shrink-0"><span class="text-primary">Fall 2021 - Current</span></div>
+                        <div class="flex-shrink-0"><span class="text-primary">Fall 2021 - Spring 2022</span></div>
                     </div>
                     <div class="d-flex flex-column flex-md-row justify-content-between mb-5">
                         <div class="flex-grow-1">
@@ -598,5 +627,12 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
         <!-- Core theme JS-->
         <script src="js/scripts.js"></script>
+        <script type = "text/JavaScript">
+            let today = new Date();
+            let startDay = new Date(2022,3,18);
+            let daysFromStart = Math.ceil((today-startDay) / (1000*3600*24));
+            document.getElementById("daysFromStart").innerHTML = daysFromStart;
+        </script>
+        
     </body>
 </html>

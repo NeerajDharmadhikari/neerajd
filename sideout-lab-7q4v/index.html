@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sideout Lab</title>
+  <meta name="description" content="Build and share volleyball rotations.">
+  <link rel="icon" type="image/x-icon" href="../assets/img/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Sideout Lab</p>
+        <h1>Volleyball Rotation Builder</h1>
+      </div>
+      <div class="topbar-actions">
+        <button class="icon-button" id="homeButton" type="button" aria-label="Go home" title="Home">
+          <span aria-hidden="true">⌂</span>
+        </button>
+        <button class="icon-button" id="copyShareButton" type="button" aria-label="Copy share link" title="Copy share link">
+          <span aria-hidden="true">↗</span>
+        </button>
+      </div>
+    </header>
+
+    <section class="notice hidden" id="notice" role="status" aria-live="polite"></section>
+
+    <section class="home-view" id="homeView">
+      <div class="welcome-panel">
+        <div>
+          <p class="eyebrow">Captain's board</p>
+          <h2>Map the lineup before the whistle.</h2>
+          <p>Create a rotation set, place players on the half court, and send one link your team can open from any phone or computer.</p>
+        </div>
+        <button class="create-button" id="startCreateButton" type="button" aria-label="Create new rotation set">
+          <span aria-hidden="true">＋</span>
+          Create
+        </button>
+      </div>
+
+      <div class="section-heading">
+        <h2>Saved Boards</h2>
+        <button class="text-button" id="clearBoardsButton" type="button">Clear local boards</button>
+      </div>
+      <div class="board-list" id="boardList"></div>
+    </section>
+
+    <section class="setup-view hidden" id="setupView">
+      <div class="setup-layout">
+        <form class="setup-panel" id="setupForm">
+          <p class="eyebrow">New board</p>
+          <label class="field-label" for="boardName">Rotation name</label>
+          <input id="boardName" name="boardName" type="text" placeholder="Thursday league lineup" autocomplete="off" required>
+
+          <div class="player-form">
+            <div>
+              <label class="field-label" for="playerName">Player name</label>
+              <input id="playerName" type="text" placeholder="Player name" autocomplete="off">
+            </div>
+            <div>
+              <label class="field-label" for="playerGender">Player</label>
+              <select id="playerGender">
+                <option value="F">Female</option>
+                <option value="M">Male</option>
+              </select>
+            </div>
+            <button class="secondary-button" id="addPlayerButton" type="button">Add</button>
+          </div>
+
+          <div class="form-actions">
+            <button class="secondary-button" id="cancelSetupButton" type="button">Cancel</button>
+            <button class="primary-button" type="submit">Start Rotation 1</button>
+          </div>
+        </form>
+
+        <aside class="roster-preview">
+          <div class="section-heading compact">
+            <h2>Roster</h2>
+            <span id="playerCount">0 players</span>
+          </div>
+          <div class="player-list" id="setupPlayerList"></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="builder-view hidden" id="builderView">
+      <div class="builder-layout">
+        <div class="court-wrap">
+          <div class="court-toolbar">
+            <div>
+              <p class="eyebrow">Half court</p>
+              <h2 id="courtHeading">Rotation 1</h2>
+            </div>
+            <button class="secondary-button" id="copyShareButtonCourt" type="button">Copy share link</button>
+          </div>
+
+          <div class="court" id="court" aria-label="Volleyball half court">
+            <div class="net-label">Net</div>
+            <div class="ten-foot-line">10 ft</div>
+            <button class="court-spot top-left" data-spot="topLeft" type="button" aria-label="Front left court spot"></button>
+            <button class="court-spot top-middle" data-spot="topMiddle" type="button" aria-label="Front middle court spot"></button>
+            <button class="court-spot top-right" data-spot="topRight" type="button" aria-label="Front right court spot"></button>
+            <button class="court-spot bottom-left" data-spot="bottomLeft" type="button" aria-label="Back left court spot"></button>
+            <button class="court-spot bottom-middle" data-spot="bottomMiddle" type="button" aria-label="Back middle court spot"></button>
+            <button class="court-spot bottom-right" data-spot="bottomRight" type="button" aria-label="Back right court spot"></button>
+          </div>
+
+          <div class="court-nav">
+            <button class="arrow-button" id="previousRotationButton" type="button" aria-label="Previous rotation" title="Previous rotation">‹</button>
+            <button class="arrow-button" id="nextRotationButton" type="button" aria-label="Next rotation" title="Next rotation">›</button>
+          </div>
+        </div>
+
+        <aside class="control-panel">
+          <div class="board-title-row">
+            <div>
+              <p class="eyebrow">Board</p>
+              <h2 id="activeBoardName">Untitled</h2>
+            </div>
+            <span class="rotation-pill" id="rotationCounter">Rotation 1</span>
+          </div>
+
+          <div class="rotation-tabs" id="rotationTabs"></div>
+
+          <div class="section-heading compact">
+            <h3>Role stickers</h3>
+            <span id="roleStatus">Not placed</span>
+          </div>
+          <div class="role-stickers">
+            <button class="role-sticker setter-sticker" data-role="setter" type="button" draggable="true" aria-label="Setter sticker">
+              Setter
+            </button>
+            <button class="role-sticker middle-sticker" data-role="middle" type="button" draggable="true" aria-label="Middle blocker sticker">
+              Middle
+            </button>
+          </div>
+
+          <div class="section-heading compact">
+            <h3>Available players</h3>
+            <button class="text-button" id="clearCourtButton" type="button">Clear court</button>
+          </div>
+          <div class="bench" id="bench"></div>
+
+          <div class="section-heading compact">
+            <h3>Sub queue</h3>
+            <span id="queueCount">0 waiting</span>
+          </div>
+          <div class="sub-queue" id="subQueue" aria-label="Sub queue drop zone"></div>
+
+          <div class="builder-actions">
+            <button class="primary-button" id="saveRotationButton" type="button">Save rotation</button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

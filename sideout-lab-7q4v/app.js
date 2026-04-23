@@ -1,4 +1,5 @@
 const STORAGE_KEY = "sideoutLabBoardsV2";
+const LEGACY_STORAGE_PREFIX = "sideoutLabBoards";
 const SHARE_PARAM = "board";
 const QUEUE_LIMIT = 5;
 const POSITIONS = ["topLeft", "topMiddle", "topRight", "bottomLeft", "bottomMiddle", "bottomRight"];
@@ -30,7 +31,6 @@ const els = {
   playerCount: document.getElementById("playerCount"),
   cancelSetupButton: document.getElementById("cancelSetupButton"),
   activeBoardName: document.getElementById("activeBoardName"),
-  rotationCounter: document.getElementById("rotationCounter"),
   rotationTabs: document.getElementById("rotationTabs"),
   roleStickers: document.querySelectorAll(".role-sticker"),
   roleStatus: document.getElementById("roleStatus"),
@@ -51,7 +51,51 @@ function uid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
+function safeParseJson(value) {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+}
+
+function mostRecentBoardTimestamp(boards) {
+  if (!Array.isArray(boards) || boards.length === 0) return 0;
+  return boards.reduce((latest, board) => {
+    const time = Date.parse(board && board.updatedAt ? board.updatedAt : "");
+    return Number.isFinite(time) ? Math.max(latest, time) : latest;
+  }, 0);
+}
+
+function migrateLegacyBoardsIfNeeded() {
+  const currentBoards = safeParseJson(localStorage.getItem(STORAGE_KEY));
+  if (Array.isArray(currentBoards) && currentBoards.length) return null;
+
+  let best = null;
+  for (let index = 0; index < localStorage.length; index += 1) {
+    const key = localStorage.key(index);
+    if (!key) continue;
+    if (key === STORAGE_KEY) continue;
+    if (!key.startsWith(LEGACY_STORAGE_PREFIX)) continue;
+
+    const boards = safeParseJson(localStorage.getItem(key));
+    if (!Array.isArray(boards) || boards.length === 0) continue;
+
+    const score = mostRecentBoardTimestamp(boards);
+    if (!best || score > best.score) {
+      best = { key, boards, score };
+    }
+  }
+
+  if (!best) return null;
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(best.boards));
+  return best.key;
+}
+
 function showNotice(message) {
+  if (!els.notice) return;
   els.notice.textContent = message;
   els.notice.classList.remove("hidden");
   window.setTimeout(() => els.notice.classList.add("hidden"), 3000);
@@ -97,6 +141,12 @@ function normalizeBoard(board) {
 
 function normalizeSetter(setterSpot) {
   return POSITIONS.includes(setterSpot) ? setterSpot : null;
+}
+
+function clampNumber(value, min, max) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return min;
+  return Math.min(max, Math.max(min, number));
 }
 
 function normalizeRotation(rotation) {
@@ -347,10 +397,9 @@ function renderBuilder() {
   board.middles[state.activeRotationIndex] = normalizeSetter(board.middles[state.activeRotationIndex]);
   board.arrows[state.activeRotationIndex] = Array.isArray(board.arrows[state.activeRotationIndex]) ? board.arrows[state.activeRotationIndex] : [];
 
-  els.activeBoardName.textContent = board.name;
-  els.rotationCounter.textContent = `Rotation ${rotationNumber}`;
-  els.courtHeading.textContent = `Rotation ${rotationNumber}`;
-  els.previousRotationButton.disabled = state.activeRotationIndex === 0;
+  if (els.activeBoardName) els.activeBoardName.textContent = board.name;
+  if (els.courtHeading) els.courtHeading.textContent = `Rotation ${rotationNumber}`;
+  if (els.previousRotationButton) els.previousRotationButton.disabled = state.activeRotationIndex === 0;
   renderRotationTabs();
   renderRoleStatus();
   renderBench(rotation);
@@ -381,7 +430,7 @@ function renderRoleStatus() {
   const labels = [];
   if (setter) labels.push(`Setter: ${setter.name}`);
   if (middle) labels.push(`Middle: ${middle.name}`);
-  els.roleStatus.textContent = labels.length ? labels.join(" · ") : "Not placed";
+  if (els.roleStatus) els.roleStatus.textContent = labels.length ? labels.join(" · ") : "Not placed";
   els.roleStickers.forEach((sticker) => {
     sticker.classList.toggle("placed", Boolean(getRolePlayer(sticker.dataset.role, rotation)));
   });
@@ -434,7 +483,7 @@ function cleanQueue(rotation, existingQueue = []) {
 
 function renderSubQueue(queue) {
   els.subQueue.innerHTML = "";
-  els.queueCount.textContent = `${queue.length}/${QUEUE_LIMIT} waiting`;
+  if (els.queueCount) els.queueCount.textContent = `${queue.length}/${QUEUE_LIMIT} waiting`;
 
   for (let index = 0; index < QUEUE_LIMIT; index += 1) {
     const playerId = queue[index];
@@ -589,6 +638,15 @@ function persistCurrentRotation() {
   return true;
 }
 
+function persistDraftRotation() {
+  state.activeBoard.queues[state.activeRotationIndex] = cleanQueue(
+    state.activeBoard.rotations[state.activeRotationIndex],
+    state.activeBoard.queues[state.activeRotationIndex]
+  );
+  saveActiveBoard();
+  return true;
+}
+
 function generateNextRotationFromCurrent() {
   const rotation = state.activeBoard.rotations[state.activeRotationIndex];
   const queue = cleanQueue(rotation, state.activeBoard.queues[state.activeRotationIndex]);
@@ -629,7 +687,7 @@ function calculateNextRotation(rotation, queue) {
 
 function goToPreviousRotation() {
   if (state.activeRotationIndex === 0) return;
-  if (!persistCurrentRotation()) return;
+  persistDraftRotation();
   state.activeRotationIndex -= 1;
   state.selectedPlayerId = null;
   renderBuilder();
@@ -639,8 +697,8 @@ function goToNextRotation() {
   if (state.activeRotationIndex === state.activeBoard.rotations.length - 1) {
     if (!persistCurrentRotation()) return;
     generateNextRotationFromCurrent();
-  } else if (!persistCurrentRotation()) {
-    return;
+  } else {
+    persistDraftRotation();
   }
   state.activeRotationIndex += 1;
   state.selectedPlayerId = null;
@@ -672,33 +730,33 @@ function loadSharedBoard() {
 }
 
 function bindEvents() {
-  els.startCreateButton.addEventListener("click", startSetup);
-  els.cancelSetupButton.addEventListener("click", () => showView("home"));
-  els.addPlayerButton.addEventListener("click", addDraftPlayer);
-  els.playerName.addEventListener("keydown", (event) => {
+  if (els.startCreateButton) els.startCreateButton.addEventListener("click", startSetup);
+  if (els.cancelSetupButton) els.cancelSetupButton.addEventListener("click", () => showView("home"));
+  if (els.addPlayerButton) els.addPlayerButton.addEventListener("click", addDraftPlayer);
+  if (els.playerName) els.playerName.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
       addDraftPlayer();
     }
   });
-  els.setupForm.addEventListener("submit", createBoard);
-  els.homeButton.addEventListener("click", () => {
+  if (els.setupForm) els.setupForm.addEventListener("submit", createBoard);
+  if (els.homeButton) els.homeButton.addEventListener("click", () => {
     state.activeBoard = null;
     state.selectedPlayerId = null;
     renderBoardList();
     showView("home");
   });
-  els.clearBoardsButton.addEventListener("click", () => {
+  if (els.clearBoardsButton) els.clearBoardsButton.addEventListener("click", () => {
     state.boards = [];
     saveBoards();
     renderBoardList();
   });
-  els.copyShareButton.addEventListener("click", copyShareLink);
-  els.copyShareButtonCourt.addEventListener("click", copyShareLink);
-  els.clearCourtButton.addEventListener("click", clearCourt);
-  els.previousRotationButton.addEventListener("click", goToPreviousRotation);
-  els.nextRotationButton.addEventListener("click", goToNextRotation);
-  els.saveRotationButton.addEventListener("click", saveRotation);
+  if (els.copyShareButton) els.copyShareButton.addEventListener("click", copyShareLink);
+  if (els.copyShareButtonCourt) els.copyShareButtonCourt.addEventListener("click", copyShareLink);
+  if (els.clearCourtButton) els.clearCourtButton.addEventListener("click", clearCourt);
+  if (els.previousRotationButton) els.previousRotationButton.addEventListener("click", goToPreviousRotation);
+  if (els.nextRotationButton) els.nextRotationButton.addEventListener("click", goToNextRotation);
+  if (els.saveRotationButton) els.saveRotationButton.addEventListener("click", saveRotation);
   els.roleStickers.forEach((sticker) => {
     sticker.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("text/sticker", `role-${sticker.dataset.role}`);
@@ -778,11 +836,15 @@ function bindEvents() {
 }
 
 function init() {
+  const migratedFrom = migrateLegacyBoardsIfNeeded();
   loadBoards();
   bindEvents();
   if (!loadSharedBoard()) {
     renderBoardList();
     showView("home");
+  }
+  if (migratedFrom) {
+    showNotice("Restored saved boards from an older Sideout Lab version.");
   }
 }
 

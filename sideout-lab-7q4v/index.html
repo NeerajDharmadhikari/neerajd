@@ -13,19 +13,10 @@
 </head>
 <body>
   <main class="app-shell">
-    <header class="topbar">
-      <div>
-        <p class="eyebrow">Sideout Lab</p>
-        <h1>Volleyball Rotation Builder</h1>
-      </div>
-      <div class="topbar-actions">
-        <button class="icon-button" id="homeButton" type="button" aria-label="Go home" title="Home">
-          <span aria-hidden="true">⌂</span>
-        </button>
-        <button class="icon-button" id="copyShareButton" type="button" aria-label="Copy share link" title="Copy share link">
-          <span aria-hidden="true">↗</span>
-        </button>
-      </div>
+    <header class="app-nav">
+      <button class="brand-logo" id="homeButton" type="button" aria-label="Sideout Lab home" title="Sideout Lab home">
+        <img src="../assets/img/sideout-lab-mark.svg" alt="Sideout Lab">
+      </button>
     </header>
 
     <section class="notice hidden" id="notice" role="status" aria-live="polite"></section>
@@ -122,7 +113,6 @@
               <p class="eyebrow">Board</p>
               <h2 id="activeBoardName">Untitled</h2>
             </div>
-            <span class="rotation-pill" id="rotationCounter">Rotation 1</span>
           </div>
 
           <div class="rotation-tabs" id="rotationTabs"></div>
@@ -160,6 +150,6 @@
     </section>
   </main>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20260423-rotation-nav"></script>
 </body>
 </html>

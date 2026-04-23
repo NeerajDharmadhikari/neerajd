@@ -45,29 +45,19 @@ button {
   padding: 28px 0 40px;
 }
 
-.topbar {
+.app-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 18px;
-  padding: 16px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.32);
-  border-radius: 8px;
-  background: rgba(255, 250, 240, 0.88);
-  box-shadow: var(--shadow);
 }
 
-.topbar h1,
 .welcome-panel h2,
 .section-heading h2,
 .board-title-row h2,
 .court-toolbar h2 {
   margin: 0;
-}
-
-.topbar h1 {
-  font-size: clamp(1.4rem, 3vw, 2rem);
 }
 
 .eyebrow {
@@ -79,7 +69,6 @@ button {
   text-transform: uppercase;
 }
 
-.topbar-actions,
 .form-actions,
 .builder-actions,
 .court-toolbar,
@@ -92,8 +81,19 @@ button {
   gap: 10px;
 }
 
-.topbar-actions {
-  flex-shrink: 0;
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  min-height: 52px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+}
+
+.brand-logo img {
+  display: block;
+  width: 44px;
+  height: 44px;
 }
 
 .icon-button,
@@ -439,14 +439,14 @@ select {
 .role-sticker {
   display: grid;
   place-items: center;
-  width: clamp(74px, 8vw, 112px);
-  height: clamp(74px, 8vw, 112px);
+  width: 64px;
+  height: 64px;
   border: 3px solid rgba(255, 255, 255, 0.86);
   border-radius: 50%;
   color: #fff;
   background: #7a3fb0;
   box-shadow: 0 12px 28px rgba(49, 18, 78, 0.28);
-  font-size: clamp(0.72rem, 1vw, 0.9rem);
+  font-size: 0.72rem;
   font-weight: 800;
   line-height: 1.1;
   text-align: center;
@@ -676,16 +676,12 @@ select {
     padding-top: 10px;
   }
 
-  .topbar,
+  .app-nav,
   .court-toolbar,
   .player-form,
   .builder-actions {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .topbar-actions {
-    align-self: flex-start;
   }
 
   .create-button {
@@ -709,7 +705,6 @@ select {
     max-width: 300px;
   }
 
-  .topbar h1,
   .welcome-panel h2,
   .section-heading h2 {
     max-width: 300px;
@@ -740,4 +735,5 @@ select {
     width: clamp(68px, 22vw, 92px);
     height: clamp(68px, 22vw, 92px);
   }
+
 }

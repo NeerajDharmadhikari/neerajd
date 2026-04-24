@@ -1,14 +1,19 @@
 const STORAGE_KEY = "sideoutLabBoardsV2";
 const LEGACY_STORAGE_PREFIX = "sideoutLabBoards";
+const TEAM_PASSWORD_KEY = "sideoutLabTeamPassword";
+const SUPABASE_REST_URL = "https://aggmpwabqlifcwvnyfyb.supabase.co/rest/v1";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ21wd2FicWxpZmN3dm55ZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNDIzNTUsImV4cCI6MjA5MjYxODM1NX0.F73CtAOb3Xzc-dHZ_B8uY_er8kLMEJV4_WULRrz365s";
 const SHARE_PARAM = "board";
 const QUEUE_LIMIT = 5;
 const POSITIONS = ["topLeft", "topMiddle", "topRight", "bottomLeft", "bottomMiddle", "bottomRight"];
 
 const state = {
   boards: [],
+  cloudBoards: [],
   activeBoard: null,
   activeRotationIndex: 0,
-  selectedPlayerId: null
+  selectedPlayerId: null,
+  teamPassword: sessionStorage.getItem(TEAM_PASSWORD_KEY) || ""
 };
 
 const els = {
@@ -19,6 +24,7 @@ const els = {
   boardList: document.getElementById("boardList"),
   startCreateButton: document.getElementById("startCreateButton"),
   clearBoardsButton: document.getElementById("clearBoardsButton"),
+  cloudStatus: document.getElementById("cloudStatus"),
   homeButton: document.getElementById("homeButton"),
   copyShareButton: document.getElementById("copyShareButton"),
   copyShareButtonCourt: document.getElementById("copyShareButtonCourt"),
@@ -42,6 +48,7 @@ const els = {
   clearCourtButton: document.getElementById("clearCourtButton"),
   previousRotationButton: document.getElementById("previousRotationButton"),
   saveRotationButton: document.getElementById("saveRotationButton"),
+  saveCloudButton: document.getElementById("saveCloudButton"),
   nextRotationButton: document.getElementById("nextRotationButton")
 };
 
@@ -94,17 +101,86 @@ function migrateLegacyBoardsIfNeeded() {
   return best.key;
 }
 
-function showNotice(message) {
+function showNotice(message, type = "info") {
   if (!els.notice) return;
   els.notice.textContent = message;
+  els.notice.classList.toggle("notice-error", type === "error");
   els.notice.classList.remove("hidden");
-  window.setTimeout(() => els.notice.classList.add("hidden"), 3000);
+  window.setTimeout(() => {
+    els.notice.classList.add("hidden");
+    els.notice.classList.remove("notice-error");
+  }, 3000);
 }
 
 function showView(viewName) {
   els.homeView.classList.toggle("hidden", viewName !== "home");
   els.setupView.classList.toggle("hidden", viewName !== "setup");
   els.builderView.classList.toggle("hidden", viewName !== "builder");
+}
+
+function updateCloudStatus(message) {
+  if (!els.cloudStatus) return;
+  els.cloudStatus.textContent = message || "Cloud boards load below. Opening or saving asks for the team password.";
+}
+
+function slugify(value) {
+  return (value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 64);
+}
+
+function isBoardSlug(value) {
+  return /^[a-z0-9-]{1,80}$/.test(value || "");
+}
+
+async function supabaseRpc(functionName, payload) {
+  const response = await fetch(`${SUPABASE_REST_URL}/rpc/${functionName}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(errorText || `Supabase request failed: ${response.status}`);
+  }
+
+  if (response.status === 204) return null;
+  return response.json();
+}
+
+function boardToCloudData(board) {
+  return {
+    meta: {
+      playerCount: board.players.length,
+      rotationCount: board.rotations.length
+    },
+    players: board.players,
+    rotations: board.rotations,
+    queues: board.queues || [],
+    setters: board.setters || [],
+    middles: board.middles || [],
+    arrows: board.arrows || []
+  };
+}
+
+function cloudRowToBoard(row) {
+  return normalizeBoard({
+    id: row.id || row.slug,
+    slug: row.slug,
+    name: row.name,
+    ...(row.board_data || {}),
+    updatedAt: row.updated_at,
+    isCloud: true
+  });
 }
 
 function loadBoards() {
@@ -128,6 +204,8 @@ function normalizeBoard(board) {
 
   return {
     id: board.id || uid(),
+    slug: board.slug || null,
+    isCloud: Boolean(board.isCloud),
     name: board.name || "Untitled board",
     players: Array.isArray(board.players) ? board.players : [],
     rotations,
@@ -204,13 +282,166 @@ function decodeBoard(encoded) {
 
 function getShareUrl(board) {
   const url = new URL(window.location.href);
-  url.searchParams.set(SHARE_PARAM, encodeBoard(board));
+  url.searchParams.set(SHARE_PARAM, board.slug || encodeBoard(board));
   return url.toString();
+}
+
+async function loadCloudBoards() {
+  updateCloudStatus("Loading cloud boards...");
+  const rows = await supabaseRpc("sideout_list_public_boards", {});
+  state.cloudBoards = (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row.id,
+    slug: row.slug,
+    name: row.name,
+    playerCount: row.player_count,
+    rotationCount: row.rotation_count,
+    updatedAt: row.updated_at,
+    isCloud: true
+  }));
+  updateCloudStatus(`${state.cloudBoards.length} cloud board${state.cloudBoards.length === 1 ? "" : "s"} available`);
+  renderBoardList();
+}
+
+function getTeamPassword() {
+  if (state.teamPassword) return state.teamPassword;
+  const password = window.prompt("Team password");
+  if (!password) return "";
+  state.teamPassword = password.trim();
+  sessionStorage.setItem(TEAM_PASSWORD_KEY, state.teamPassword);
+  return state.teamPassword;
+}
+
+function showWrongPasswordNotice() {
+  showNotice("wow, you got the password wrong. that's 10 push ups", "error");
+}
+
+function boardMetaText(board) {
+  const playerCount = Number.isFinite(board.playerCount) ? board.playerCount : Array.isArray(board.players) ? board.players.length : null;
+  const rotationCount = Number.isFinite(board.rotationCount) ? board.rotationCount : Array.isArray(board.rotations) ? board.rotations.length : null;
+  if (playerCount === null || rotationCount === null) return "Team board";
+  return `${playerCount} players · ${rotationCount} rotations`;
+}
+
+function trashIconMarkup() {
+  return `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M3 6h18"/>
+      <path d="M8 6V4h8v2"/>
+      <path d="M6 6l1 15h10l1-15"/>
+      <path d="M10 10v7"/>
+      <path d="M14 10v7"/>
+    </svg>
+  `;
+}
+
+async function fetchCloudBoard(slug, password) {
+  const rows = await supabaseRpc("sideout_get_board", {
+    team_password: password,
+    board_slug: slug
+  });
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return row ? cloudRowToBoard(row) : null;
+}
+
+async function openCloudBoard(slug) {
+  const password = getTeamPassword();
+  if (!password) return;
+
+  try {
+    const board = await fetchCloudBoard(slug, password);
+    if (!board) {
+      showNotice("That cloud board could not be found.");
+      return;
+    }
+
+    state.activeBoard = board;
+    state.activeRotationIndex = 0;
+    state.selectedPlayerId = null;
+    renderBuilder();
+    showView("builder");
+  } catch (error) {
+    state.teamPassword = "";
+    sessionStorage.removeItem(TEAM_PASSWORD_KEY);
+    showWrongPasswordNotice();
+  }
+}
+
+async function deleteCloudBoard(slug) {
+  const password = getTeamPassword();
+  if (!password) return;
+
+  try {
+    await supabaseRpc("sideout_delete_board", {
+      team_password: password,
+      board_slug: slug
+    });
+    if (state.activeBoard && state.activeBoard.slug === slug) {
+      state.activeBoard = null;
+      state.activeRotationIndex = 0;
+      state.selectedPlayerId = null;
+      showView("home");
+    }
+    state.boards = state.boards.map((board) => (
+      board.slug === slug ? { ...board, slug: null, isCloud: false } : board
+    ));
+    saveBoards();
+    await loadCloudBoards();
+    showNotice("Team board deleted.");
+  } catch (error) {
+    state.teamPassword = "";
+    sessionStorage.removeItem(TEAM_PASSWORD_KEY);
+    showWrongPasswordNotice();
+  }
+}
+
+async function saveCloudBoard() {
+  if (!state.activeBoard) {
+    showNotice("Open or create a board before saving to cloud.");
+    return;
+  }
+
+  const password = getTeamPassword();
+  if (!password) return;
+
+  const suggestedSlug = slugify(state.activeBoard.slug || state.activeBoard.name);
+  const slug = window.prompt("Board URL slug", suggestedSlug);
+  if (!slug) return;
+
+  persistDraftRotation();
+  try {
+    const rows = await supabaseRpc("sideout_upsert_board", {
+      team_password: state.teamPassword,
+      board_slug: slug,
+      board_name: state.activeBoard.name,
+      input_board_data: boardToCloudData(state.activeBoard),
+      publish_board: true
+    });
+    const row = Array.isArray(rows) ? rows[0] : null;
+    if (row) {
+      state.activeBoard.slug = row.slug;
+      state.activeBoard.isCloud = true;
+      state.activeBoard.updatedAt = row.updated_at;
+      saveActiveBoard();
+    }
+    sessionStorage.setItem(TEAM_PASSWORD_KEY, state.teamPassword);
+    await loadCloudBoards();
+    renderBuilder();
+    showNotice("Saved to team boards. Share links are short now.");
+  } catch (error) {
+    state.teamPassword = "";
+    sessionStorage.removeItem(TEAM_PASSWORD_KEY);
+    showWrongPasswordNotice();
+  }
 }
 
 async function copyShareLink() {
   if (!state.activeBoard) {
     showNotice("Open or create a board before copying a share link.");
+    return;
+  }
+
+  if (!state.activeBoard.slug) {
+    showNotice("Save this board to team boards before sharing.");
     return;
   }
 
@@ -225,24 +456,92 @@ async function copyShareLink() {
 
 function renderBoardList() {
   els.boardList.innerHTML = "";
+  const hasCloudBoards = state.cloudBoards.length > 0;
+  const hasLocalBoards = state.boards.length > 0;
 
-  if (!state.boards.length) {
+  if (!hasCloudBoards && !hasLocalBoards) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
-    empty.textContent = "No local boards yet. Create one to start mapping rotations.";
+    empty.textContent = "No cloud or local boards yet. Create one to start mapping rotations.";
     els.boardList.appendChild(empty);
     return;
   }
 
-  state.boards.forEach((board) => {
+  const renderSection = (title, boards, emptyText, renderCard) => {
+    const section = document.createElement("section");
+    section.className = "board-section";
+
+    const heading = document.createElement("div");
+    heading.className = "section-heading compact";
+    const headingTitle = document.createElement("h3");
+    headingTitle.textContent = title;
+    heading.appendChild(headingTitle);
+    section.appendChild(heading);
+
+    const grid = document.createElement("div");
+    grid.className = "board-grid";
+    if (boards.length) {
+      boards.forEach((board) => grid.appendChild(renderCard(board)));
+    } else {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = emptyText;
+      grid.appendChild(empty);
+    }
+    section.appendChild(grid);
+    els.boardList.appendChild(section);
+  };
+
+  const renderTeamCard = (board) => {
     const card = document.createElement("article");
     card.className = "board-card";
 
     const title = document.createElement("h3");
     title.textContent = board.name;
 
-  const meta = document.createElement("p");
-  meta.textContent = `${board.players.length} players · ${board.rotations.length} rotations`;
+    const meta = document.createElement("p");
+    meta.textContent = boardMetaText(board);
+
+    const actions = document.createElement("div");
+    actions.className = "board-card-actions";
+
+    const openButton = document.createElement("button");
+    openButton.className = "primary-button";
+    openButton.type = "button";
+    openButton.textContent = "Open";
+    openButton.addEventListener("click", () => openCloudBoard(board.slug));
+
+    const shareButton = document.createElement("button");
+    shareButton.className = "secondary-button";
+    shareButton.type = "button";
+    shareButton.textContent = "Share";
+    shareButton.addEventListener("click", async () => {
+      state.activeBoard = normalizeBoard({ ...board, players: [], rotations: [emptyRotation()] });
+      await copyShareLink();
+    });
+
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "icon-button danger-button";
+    deleteButton.type = "button";
+    deleteButton.setAttribute("aria-label", `Delete ${board.name}`);
+    deleteButton.title = "Delete team board";
+    deleteButton.innerHTML = trashIconMarkup();
+    deleteButton.addEventListener("click", () => deleteCloudBoard(board.slug));
+
+    actions.append(openButton, shareButton, deleteButton);
+    card.append(title, meta, actions);
+    return card;
+  };
+
+  const renderLocalCard = (board) => {
+    const card = document.createElement("article");
+    card.className = "board-card";
+
+    const title = document.createElement("h3");
+    title.textContent = board.name;
+
+    const meta = document.createElement("p");
+    meta.textContent = boardMetaText(board);
 
     const actions = document.createElement("div");
     actions.className = "board-card-actions";
@@ -256,22 +555,31 @@ function renderBoardList() {
     const shareButton = document.createElement("button");
     shareButton.className = "secondary-button";
     shareButton.type = "button";
-    shareButton.textContent = "Share";
+    shareButton.textContent = board.slug ? "Share" : "Save to team boards";
     shareButton.addEventListener("click", async () => {
       state.activeBoard = board;
-      await copyShareLink();
+      if (board.slug) {
+        await copyShareLink();
+      } else {
+        await saveCloudBoard();
+      }
     });
 
     const deleteButton = document.createElement("button");
-    deleteButton.className = "text-button";
+    deleteButton.className = "icon-button danger-button";
     deleteButton.type = "button";
-    deleteButton.textContent = "Delete";
+    deleteButton.setAttribute("aria-label", `Delete ${board.name}`);
+    deleteButton.title = "Delete local board";
+    deleteButton.innerHTML = trashIconMarkup();
     deleteButton.addEventListener("click", () => deleteBoard(board.id));
 
     actions.append(openButton, shareButton, deleteButton);
     card.append(title, meta, actions);
-    els.boardList.appendChild(card);
-  });
+    return card;
+  };
+
+  renderSection("Team boards", state.cloudBoards, "No team boards yet.", renderTeamCard);
+  renderSection("Local boards", state.boards, "No local boards yet.", renderLocalCard);
 }
 
 function renderDraftPlayers() {
@@ -530,7 +838,23 @@ function renderCourt(rotation) {
     spot.classList.toggle("filled", Boolean(player));
     spot.classList.toggle("has-setter", Boolean(player) && hasSetter);
     spot.classList.toggle("has-middle", Boolean(player) && hasMiddle);
-    spot.dataset.playerName = player ? player.name : "";
+    spot.innerHTML = "";
+    spot.removeAttribute("data-player-name");
+
+    if (!player) return;
+
+    const playerName = document.createElement("span");
+    playerName.className = "court-player-name";
+    playerName.textContent = player.name;
+    playerName.style.setProperty("--name-length", `${Math.max(player.name.length, 5)}`);
+    spot.appendChild(playerName);
+
+    if (hasSetter || hasMiddle) {
+      const roleLabel = document.createElement("span");
+      roleLabel.className = "court-role-label";
+      roleLabel.textContent = hasSetter && hasMiddle ? "Setter / Middle" : hasSetter ? "Setter" : "Middle";
+      spot.appendChild(roleLabel);
+    }
   });
 }
 
@@ -705,10 +1029,33 @@ function goToNextRotation() {
   renderBuilder();
 }
 
-function loadSharedBoard() {
+async function loadSharedBoard() {
   const params = new URLSearchParams(window.location.search);
   const encoded = params.get(SHARE_PARAM);
   if (!encoded) return false;
+
+  if (isBoardSlug(encoded)) {
+    const password = getTeamPassword();
+    if (!password) return false;
+
+    try {
+      const board = await fetchCloudBoard(encoded, password);
+      if (board) {
+        state.activeBoard = board;
+        state.activeRotationIndex = 0;
+        state.selectedPlayerId = null;
+        renderBuilder();
+        showView("builder");
+        showNotice("Loaded shared Sideout Lab board.");
+        return true;
+      }
+    } catch (error) {
+      state.teamPassword = "";
+      sessionStorage.removeItem(TEAM_PASSWORD_KEY);
+      showWrongPasswordNotice();
+      return false;
+    }
+  }
 
   try {
     const board = decodeBoard(encoded);
@@ -757,6 +1104,7 @@ function bindEvents() {
   if (els.previousRotationButton) els.previousRotationButton.addEventListener("click", goToPreviousRotation);
   if (els.nextRotationButton) els.nextRotationButton.addEventListener("click", goToNextRotation);
   if (els.saveRotationButton) els.saveRotationButton.addEventListener("click", saveRotation);
+  if (els.saveCloudButton) els.saveCloudButton.addEventListener("click", saveCloudBoard);
   els.roleStickers.forEach((sticker) => {
     sticker.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("text/sticker", `role-${sticker.dataset.role}`);
@@ -770,20 +1118,20 @@ function bindEvents() {
       }
     });
   });
-  els.subQueue.addEventListener("click", (event) => {
+  if (els.subQueue) els.subQueue.addEventListener("click", (event) => {
     if (event.target.closest(".queue-player")) return;
     if (state.selectedPlayerId) {
       addPlayerToQueue(state.selectedPlayerId);
     }
   });
-  els.subQueue.addEventListener("dragover", (event) => {
+  if (els.subQueue) els.subQueue.addEventListener("dragover", (event) => {
     event.preventDefault();
     els.subQueue.classList.add("drop-target");
   });
-  els.subQueue.addEventListener("dragleave", () => {
+  if (els.subQueue) els.subQueue.addEventListener("dragleave", () => {
     els.subQueue.classList.remove("drop-target");
   });
-  els.subQueue.addEventListener("drop", (event) => {
+  if (els.subQueue) els.subQueue.addEventListener("drop", (event) => {
     event.preventDefault();
     els.subQueue.classList.remove("drop-target");
     const playerId = event.dataTransfer.getData("text/plain");
@@ -835,11 +1183,17 @@ function bindEvents() {
   });
 }
 
-function init() {
+async function init() {
   const migratedFrom = migrateLegacyBoardsIfNeeded();
   loadBoards();
   bindEvents();
-  if (!loadSharedBoard()) {
+  updateCloudStatus();
+  loadCloudBoards().catch(() => {
+    state.cloudBoards = [];
+    updateCloudStatus("Cloud boards could not load.");
+    renderBoardList();
+  });
+  if (!await loadSharedBoard()) {
     renderBoardList();
     showView("home");
   }

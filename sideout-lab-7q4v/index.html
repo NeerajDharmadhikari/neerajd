@@ -26,12 +26,15 @@
         <div>
           <p class="eyebrow">Captain's board</p>
           <h2>Map the lineup before the whistle.</h2>
-          <p>Create a rotation set, place players on the half court, and send one link your team can open from any phone or computer.</p>
+          <p>Create a set of rotations, place players in different positions on the court, label setters and middles, and then share your rotation with the team.</p>
         </div>
-        <button class="create-button" id="startCreateButton" type="button" aria-label="Create new rotation set">
-          <span aria-hidden="true">＋</span>
-          Create
-        </button>
+        <div class="welcome-actions">
+          <button class="create-button" id="startCreateButton" type="button" aria-label="Create new rotation set">
+            <span aria-hidden="true">＋</span>
+            Create
+          </button>
+          <p class="cloud-note" id="cloudStatus">Cloud boards load below. Opening or saving asks for the team password.</p>
+        </div>
       </div>
 
       <div class="section-heading">
@@ -144,12 +147,13 @@
 
           <div class="builder-actions">
             <button class="primary-button" id="saveRotationButton" type="button">Save rotation</button>
+            <button class="secondary-button" id="saveCloudButton" type="button">Save to team boards</button>
           </div>
         </aside>
       </div>
     </section>
   </main>
 
-  <script src="app.js?v=20260423-rotation-nav"></script>
+  <script src="app.js?v=20260424-supabase"></script>
 </body>
 </html>

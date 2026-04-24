@@ -4,6 +4,7 @@ const TEAM_PASSWORD_KEY = "sideoutLabTeamPassword";
 const SUPABASE_REST_URL = "https://aggmpwabqlifcwvnyfyb.supabase.co/rest/v1";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFnZ21wd2FicWxpZmN3dm55ZnliIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcwNDIzNTUsImV4cCI6MjA5MjYxODM1NX0.F73CtAOb3Xzc-dHZ_B8uY_er8kLMEJV4_WULRrz365s";
 const SHARE_PARAM = "board";
+const SHARE_TOKEN_PARAM = "t";
 const QUEUE_LIMIT = 5;
 const POSITIONS = ["topLeft", "topMiddle", "topRight", "bottomLeft", "bottomMiddle", "bottomRight"];
 
@@ -176,6 +177,7 @@ function cloudRowToBoard(row) {
   return normalizeBoard({
     id: row.id || row.slug,
     slug: row.slug,
+    shareToken: row.share_token || null,
     name: row.name,
     ...(row.board_data || {}),
     updatedAt: row.updated_at,
@@ -205,6 +207,7 @@ function normalizeBoard(board) {
   return {
     id: board.id || uid(),
     slug: board.slug || null,
+    shareToken: board.shareToken || board.share_token || null,
     isCloud: Boolean(board.isCloud),
     name: board.name || "Untitled board",
     players: Array.isArray(board.players) ? board.players : [],
@@ -283,6 +286,11 @@ function decodeBoard(encoded) {
 function getShareUrl(board) {
   const url = new URL(window.location.href);
   url.searchParams.set(SHARE_PARAM, board.slug || encodeBoard(board));
+  if (board.slug && board.shareToken) {
+    url.searchParams.set(SHARE_TOKEN_PARAM, board.shareToken);
+  } else {
+    url.searchParams.delete(SHARE_TOKEN_PARAM);
+  }
   return url.toString();
 }
 
@@ -341,6 +349,15 @@ async function fetchCloudBoard(slug, password) {
   });
   const row = Array.isArray(rows) ? rows[0] : null;
   return row ? cloudRowToBoard(row) : null;
+}
+
+async function fetchCloudBoardByToken(slug, token) {
+  const rows = await supabaseRpc("sideout_get_board_by_token", {
+    board_slug: slug,
+    board_token: token
+  });
+  const row = Array.isArray(rows) ? rows[0] : null;
+  return row ? cloudRowToBoard({ ...row, share_token: token }) : null;
 }
 
 async function openCloudBoard(slug) {
@@ -419,6 +436,7 @@ async function saveCloudBoard() {
     const row = Array.isArray(rows) ? rows[0] : null;
     if (row) {
       state.activeBoard.slug = row.slug;
+      state.activeBoard.shareToken = row.share_token || null;
       state.activeBoard.isCloud = true;
       state.activeBoard.updatedAt = row.updated_at;
       saveActiveBoard();
@@ -443,6 +461,20 @@ async function copyShareLink() {
   if (!state.activeBoard.slug) {
     showNotice("Save this board to team boards before sharing.");
     return;
+  }
+
+  if (!state.activeBoard.shareToken) {
+    const password = getTeamPassword();
+    if (!password) return;
+    try {
+      state.activeBoard = await fetchCloudBoard(state.activeBoard.slug, password);
+      saveActiveBoard();
+    } catch (error) {
+      state.teamPassword = "";
+      sessionStorage.removeItem(TEAM_PASSWORD_KEY);
+      showWrongPasswordNotice();
+      return;
+    }
   }
 
   const shareUrl = getShareUrl(state.activeBoard);
@@ -1032,9 +1064,28 @@ function goToNextRotation() {
 async function loadSharedBoard() {
   const params = new URLSearchParams(window.location.search);
   const encoded = params.get(SHARE_PARAM);
+  const token = params.get(SHARE_TOKEN_PARAM);
   if (!encoded) return false;
 
   if (isBoardSlug(encoded)) {
+    if (token) {
+      try {
+        const board = await fetchCloudBoardByToken(encoded, token);
+        if (board) {
+          state.activeBoard = board;
+          state.activeRotationIndex = 0;
+          state.selectedPlayerId = null;
+          renderBuilder();
+          showView("builder");
+          showNotice("Loaded shared Sideout Lab board.");
+          return true;
+        }
+      } catch (error) {
+        showNotice("That magic link could not be loaded.", "error");
+        return false;
+      }
+    }
+
     const password = getTeamPassword();
     if (!password) return false;
 
